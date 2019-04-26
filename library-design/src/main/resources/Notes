@@ -1,0 +1,193 @@
+https://thoughts-on-java.org/jpa-generate-primary-keys/
+
+
+to connect as admin
+
+ /Library/PostgreSQL/11/bin/psql -h localhost  -p 5433 -U postgres
+
+ ---
+
+ psql -h localhost -U kungfu -p 5433 -d libdb
+
+ ---
+
+ -> After installing postgres below is the output
+
+ Installation Directory: /Library/PostgreSQL/11
+ Server Installation Directory: /Library/PostgreSQL/11
+ Data Directory: /Library/PostgreSQL/11/data
+ Database Port: 5433
+ Database Superuser: postgres
+ Operating System Account: postgres
+ Database Service: postgresql-11
+ Command Line Tools Installation Directory: /Library/PostgreSQL/11
+ pgAdmin4 Installation Directory: /Library/PostgreSQL/11/pgAdmin 4
+ Stack Builder Installation Directory: /Library/PostgreSQL/11
+
+
+ superuser = postgres , password = postgres
+
+ Go to Applications -> Postgres 11 -> click on psql
+ this will start the database "postgres" with  username "postgres"  and password "postgres"
+
+ -> Tutorial link https://www.tutorialspoint.com/postgresql/
+
+ https://www.tutorialspoint.com/postgresql/postgresql_environment.htm
+
+ Try \h with no arguments to see available help.
+
+
+ -> A database is the main container, it contains the data and log files, and all the schemas within it. You always back up a database,
+     it is a discrete unit on its own. Schemas are like folders within a database,
+     and are mainly used to group logical objects together, which leads to ease of setting permissions by schema
+
+ ->  to create database
+
+         /Library/PostgreSQL/11/bin/createdb -h localhost -p 5433 -U postgres -e learningdb
+        Password:
+        SELECT pg_catalog.set_config('search_path', '', false)
+        CREATE DATABASE learningdb;
+
+        By default, the new database will be created by cloning the standard system database template1.
+
+ ->  /Library/PostgreSQL/11/bin/psql -h localhost  -p 5433 -U postgres
+
+ ->  \l to list databases (postgres is the superadmin )
+
+
+ ->  \c testdb;
+ You are now connected to database "testdb" as user "postgres".
+
+
+ -> to list all schemas
+     select nspname from pg_catalog.pg_namespace;
+
+     Advantages of using a Schema
+     It allows many users to use one database without interfering with each other.
+
+     It organizes database objects into logical groups to make them more manageable.
+
+     Third-party applications can be put into separate schemas so they do not collide with the names of other objects.
+
+ -> SELECT * FROM COMPANY LIMIT 3 OFFSET 2;
+     which picks up three records starting from the third position −
+
+ -> Triggers are database callback functions, which are automatically performed/invoked when a specified database event occurs.
+
+     CREATE TRIGGER example_trigger AFTER INSERT ON COMPANY FOR EACH ROW EXECUTE PROCEDURE auditlogfunc();
+
+     -- CREATE OR REPLACE FUNCTION auditlogfunc() RETURNS TRIGGER AS $example_table$
+           BEGIN
+              INSERT INTO AUDIT(EMP_ID, ENTRY_DATE) VALUES (new.ID, current_timestamp);
+              RETURN NEW;
+           END;
+        $example_table$ LANGUAGE plpgsql;
+
+ ->  \di - to list all the indices
+
+ -> Whenever an object is created in a database, an owner is assigned to it. The owner is usually the one who executed the creation statement.
+     For most kinds of objects, the initial state is that only the owner (or a superuser) can modify or delete the object.
+     To allow other roles or users to use it, privileges or permission must be granted.
+
+ -> CREATE USER kungfu WITH PASSWORD 'Panda123';
+
+ -> GRANT ALL PRIVILEGES ON DATABASE libdb TO kungfu;
+
+ -> To login as kungfu user to libdb
+
+ psql -h localhost -U kungfu -p 5433 -d libdb
+
+
+
+
+
+
+
+
+
+
+ =============================================================================================================================
+
+
+--- mapping two entities to the same table
+
+Hibernate stores all managed entities in the 1st level cache and delays all write operations until it flushes the persistence context. This happens transparently so that you normally don’t recognize it.
+But that changes when you map 2 entities to the same database table. A call of the EntityManager.find method to load an AuthorShort entity doesn’t trigger a flush of the Author entities.
+ So, Hibernate doesn’t write the pending changes to the database and the find method might return an outdated entity.
+
+https://thoughts-on-java.org/hibernate-tips-map-multiple-entities-same-table/
+
+
+-> to map a view in hibernate use @Immutable annotation along with @Entity to prevent any modifications
+
+
+--> db/migrations folder is necessary for flyway to pickup
+
+
+--- mapping enum values in hibernate
+
+https://thoughts-on-java.org/hibernate-tips-map-enum-database-column/
+
+either map using value or ordinal @Enumerated(EnumType.ORDINAL) maps the position of element (ordinal value)
+ or @Enumerated(EnumType.STRING) -> maps the string representation of db
+
+
+--- If db column is decimal then java.lang.double is not working in entity
+
+https://www.postgresql.org/message-id/AANLkTikkkxN+-UUiGVTzj8jdfS4PdpB8_tDONMFHNqHk@mail.gmail.com
+
+=============================================================================================================================
+
+
+The @SpringBootApplication annotation is equivalent to using @Configuration, @EnableAutoConfiguration, and @ComponentScan
+ with their default attributes
+
+
+ another way is to specify
+
+ @Configuration ,  @EnableAutoConfiguration,   @Import({ MyConfig.class, MyAnotherConfig.class })
+
+
+ -
+
+ Spring Boot auto-configuration attempts to automatically configure your Spring application based on the jar dependencies that you have added.
+ For example, if HSQLDB is on your classpath, and you have not manually configured any database connection beans,
+ then Spring Boot auto-configures an in-memory database.
+ You need to opt-in to auto-configuration by adding the @EnableAutoConfiguration or @SpringBootApplication annotations to one of your @Configuration classes.
+
+ [Tip]
+ You should only ever add one @SpringBootApplication or @EnableAutoConfiguration annotation. We generally recommend that you add one or the other to your primary @Configuration class only.
+
+
+--
+
+ https://github.com/zalando/problem-spring-web
+
+
+
+=============================================================================================================================
+
+
+AbstractPreAuthenticatedProcessingFilter
+
+==========
+
+i think the basic difference is Httpservletrequest is part of communication between container and servlet as container creates
+the object for it and passes it on to servlet,while as Httprequest is part of communication between container
+and client because container converts Httpservlet respone into Httpresponse
+
+=============================================================================================================================
+
+
+public interface HttpServletRequest extends ServletRequest {
+    String BASIC_AUTH = "BASIC";
+    String FORM_AUTH = "FORM";
+    String CLIENT_CERT_AUTH = "CLIENT_CERT";
+    String DIGEST_AUTH = "DIGEST";
+
+
+=============================================================================================================================
+
+
+
+
