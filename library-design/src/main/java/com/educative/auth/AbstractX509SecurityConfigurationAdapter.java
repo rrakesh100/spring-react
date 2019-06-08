@@ -28,10 +28,10 @@ public abstract class AbstractX509SecurityConfigurationAdapter extends WebSecuri
 
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         
-        configureUrlPattern(); //each service has a custom URL Pattern
+        configureUrlPattern(http); //each service has a custom URL Pattern
 
     }
 
-    public abstract  void configureUrlPattern();
+    protected abstract  void configureUrlPattern(HttpSecurity http) throws Exception;
 
 }

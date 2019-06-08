@@ -13,14 +13,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/v1/")
 public class UsersController {
 
     @Autowired
     private UserService userService;
 
 
-    @RequestMapping(value = "/user", method = RequestMethod.POST)
+    @RequestMapping(value = "/login_user", method = RequestMethod.POST)
     public @ResponseBody
     void addUser(@RequestBody XUser user) throws Exception {
 

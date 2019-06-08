@@ -37,7 +37,7 @@ public abstract  class AbstractUser {
 //    private Date passwordExpiryDate;
 //
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "currentOwner")
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "currentOwner")
     private List<BookCopy> borrowedBooks;
 
     @Getter @Setter

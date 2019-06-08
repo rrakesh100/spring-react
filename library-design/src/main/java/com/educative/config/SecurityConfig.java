@@ -4,18 +4,27 @@ import com.educative.auth.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -52,6 +61,8 @@ public class SecurityConfig  {
     public JHipAuthenticationProvider jHipAuthenticationProvider() {
         JHipAuthenticationProvider jHipAuthenticationProvider = new JHipAuthenticationProvider();
         jHipAuthenticationProvider.setUserDetailsService(userDetailsService());
+        jHipAuthenticationProvider.setPasswordEncoder(customPasswordEncoder());
+       // jHipAuthenticationProvider.set
         return jHipAuthenticationProvider;
     }
 
@@ -75,7 +86,45 @@ public class SecurityConfig  {
         return new JWTTokenServiceImpl(client);
     }
 
+//    @Configuration
+//    @Order(100)
+//    public static class X509SecurityConfigurationAdapter extends AbstractX509SecurityConfigurationAdapter {
+//
+//        @Override
+//        protected void configureUrlPattern(HttpSecurity http) throws Exception {
+//
+////            http.antMatcher("/internal/**")
+////                    .authorizeRequests()
+////                    .anyRequest().hasAnyRole("INTERNAL_SERVICE");
+//        }
+//
+//    }
 
+//    @Configuration
+//    @Order(200)
+//    public static class ApiSecurityConfigurationAdapter extends AbstractJWTSecurityConfigurationAdapter {
+//
+//        @Autowired
+//        private JWTTokenService jwtTokenService;
+//
+//        @Override
+//        protected void configureUrlPattern(HttpSecurity http) throws Exception {
+////            http.csrf().disable()
+////                    .antMatcher("/api/**")
+////                    .authorizeRequests()
+////                    .anyRequest().authenticated()
+////                    .and()
+////                    .httpBasic();
+//        }
+//
+//        @Override
+//        protected JWTTokenService jwtTokenService() {
+//            return jwtTokenService;
+//        }
+//
+//    }
+
+    @Configuration
     public static class FormLoginSecurityConfigurationAdapter extends WebSecurityConfigurerAdapter{
 
 
@@ -89,6 +138,9 @@ public class SecurityConfig  {
         @Autowired
         private DefaultAuthenticationFailureHandler failureHandler;
 
+        @Autowired
+        private AuthenticationEntryPoint authenticationEntryPoint;
+
         private int duration =15;
 
         private String issuer="jHip-auth";
@@ -97,38 +149,58 @@ public class SecurityConfig  {
         @Autowired
         private JWTTokenService jwtTokenService;
 
+        @Override
+        protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+            auth.authenticationProvider(jHipAuthenticationProvider);
+        }
 
+
+//        @Override
+//        public void configure(final AuthenticationManagerBuilder auth) throws Exception {
+//                        auth.inMemoryAuthentication()
+//                    .withUser("admin").password(encoder().encode("admin")).roles("ADMIN")
+//                    .and()
+//                    .withUser("user").password(encoder().encode("user")).roles("USER");
+//        }
 
 
 
         @Override
         protected void configure(HttpSecurity http) throws Exception {
-//            http.csrf().disable().authorizeRequests()
-//                    .antMatchers("/v1/user").hasAnyRole("USER")
-//                    .antMatchers("/v1/book").hasAnyRole("ADMIN")
-//                    .anyRequest().authenticated()
+
+
+            http.csrf().disable().authorizeRequests().anyRequest().authenticated()
+                    .and()
+                    .formLogin().defaultSuccessUrl("/dashboard")
+                    .loginPage("/login").permitAll().and().
+                    httpBasic().authenticationEntryPoint(authenticationEntryPoint).and().
+                    logout().permitAll();
+
+            //http.addFilterAt(jsonUsernamePasswordAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+//            http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+//            http.csrf().disable()
+//                    .authorizeRequests()
+//                        .antMatchers("/login").permitAll()
+//                        .anyRequest().authenticated()
 //                    .and()
-//                    .formLogin().loginPage("/login").permitAll()
-//                    .and().logout().permitAll();
-
-
-            http.addFilterAt(jsonUsernamePasswordAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-            http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-            http.csrf().disable()
-                    .authorizeRequests()
-                        .antMatchers("/reset_token/**").permitAll()
-                        .antMatchers("/init_login/**").permitAll()
-                        .and()
-                    .authorizeRequests()
-                        .antMatchers("/auth").permitAll()
-                    .and()
-                        .formLogin().loginPage("/auth")
-                    .and()
-                        .logout().invalidateHttpSession(true);
-//                        .addLogoutHandler()
-//                    .logoutSuccessHandler()
+//                        .formLogin()
+//                        .permitAll()
+//                    .and()
+//                        .httpBasic()
+//                    .and()
+//                        .logout().invalidateHttpSession(true);
 
         }
+
+        @Override
+        public void configure(WebSecurity web) throws Exception {
+            web.ignoring().antMatchers("/*.css");
+            web.ignoring().antMatchers("/*.js");
+        }
+
+
+
+
 
         @Bean
         public JsonUsernamePasswordAuthenticationFilter jsonUsernamePasswordAuthenticationFilter() throws Exception {
@@ -163,11 +235,23 @@ public class SecurityConfig  {
         }
 
 
-        @Override
-        protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-            auth.authenticationProvider(jHipAuthenticationProvider);
-        }
 
+
+    }
+
+    @Bean
+    public PasswordEncoder customPasswordEncoder() {
+        return new PasswordEncoder() {
+            @Override
+            public String encode(CharSequence rawPassword) {
+                return BCrypt.hashpw(rawPassword.toString(), BCrypt.gensalt(4));
+            }
+
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                return BCrypt.checkpw(rawPassword.toString(), encodedPassword);
+            }
+        };
     }
 
 

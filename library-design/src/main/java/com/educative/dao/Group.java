@@ -22,7 +22,7 @@ public class Group extends UpdateableDeletableModel {
    private Set<User> users;
 
     @Getter @Setter
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
    @JoinTable(name="group_roles", joinColumns = {@JoinColumn(name = "group_id")} , inverseJoinColumns = {@JoinColumn(name = "role_id")})
    private Set<Role> roles;
 

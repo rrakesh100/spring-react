@@ -1,0 +1,13 @@
+
+
+
+Issues:
+
+1. When Mainclass is run from intellij (IDE) it is looking for jsp files in educativeio/src/main/webapp directory
+
+however when I run it from command prompt after doing mvn clean package and then
+
+java -jar /Users/rrampall/work/lab/educativeio/library-design/target/library-design-1.0-SNAPSHOT.war
+
+it looks for the files inside the library-design directory. so duplicate the files here and there.
+

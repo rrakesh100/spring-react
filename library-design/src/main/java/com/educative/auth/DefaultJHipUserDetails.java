@@ -38,6 +38,7 @@ public class DefaultJHipUserDetails implements JHipAuthUserDetails {
                 authorities.add( new SimpleGrantedAuthority("ROLE_" + role));
             });
         }
+        this.user=user;
 
     }
 

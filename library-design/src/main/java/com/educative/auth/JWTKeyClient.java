@@ -1,5 +1,8 @@
 package com.educative.auth;
 
+import com.educative.commons.exception.JWTKeyErrorCode;
+import com.educative.commons.exception.ResourceExpiredException;
+import com.educative.commons.exception.ResourceNotFoundException;
 import com.educative.jwt.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,10 +18,13 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.util.Date;
 
 public class JWTKeyClient {
 
     private static final Logger _logger = LoggerFactory.getLogger(JWTKeyClient.class.getName());
+
+    private String baseURL;
 
     @Autowired
     private KeyHelper keyHelper;
@@ -60,4 +66,28 @@ public class JWTKeyClient {
         KeyWithPrivateKeyResponse response = KeyMapper.INSTANCE.keyToKeyWithPrivateKeyResponse(key);
         return response;
     }
+
+    /**
+     * Fetch a public key.
+     *
+     * @throws JWTKeyClientException timeout or errors during establishing the connection
+     */
+    public KeyResponse fetchPublicKeyByID(String id) throws JWTKeyClientException {
+        Key key = keyService.get(Long.parseLong(id));
+        if (key == null) {
+            _logger.error("key with id = {} not found", id);
+            throw new ResourceNotFoundException(JWTKeyErrorCode.KEY_NOT_FOUND);
+        }
+
+        Date expiredAt = key.getExpiresAt();
+        if (expiredAt != null && expiredAt.before(new Date())) {
+            _logger.error("key with id = {} is expired", id);
+            throw new ResourceExpiredException(JWTKeyErrorCode.KEY_EXPIRED);
+        }
+
+        KeyResponse response = KeyMapper.INSTANCE.keyToKeyResponse(key);
+
+        return response;
+    }
+
 }
