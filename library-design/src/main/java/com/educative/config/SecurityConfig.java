@@ -125,6 +125,7 @@ public class SecurityConfig  {
 //    }
 
     @Configuration
+    @Order(2)
     public static class FormLoginSecurityConfigurationAdapter extends WebSecurityConfigurerAdapter{
 
 
@@ -169,15 +170,17 @@ public class SecurityConfig  {
         protected void configure(HttpSecurity http) throws Exception {
 
 
+//            http.addFilterAt(jsonUsernamePasswordAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+//            http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
             http.csrf().disable().authorizeRequests().anyRequest().authenticated()
                     .and()
                     .formLogin().defaultSuccessUrl("/dashboard")
                     .loginPage("/login").permitAll().and().
                     httpBasic().authenticationEntryPoint(authenticationEntryPoint).and().
-                    logout().permitAll();
+                    logout().invalidateHttpSession(true).permitAll();
 
-            //http.addFilterAt(jsonUsernamePasswordAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-//            http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
 //            http.csrf().disable()
 //                    .authorizeRequests()
 //                        .antMatchers("/login").permitAll()
@@ -236,6 +239,117 @@ public class SecurityConfig  {
 
 
 
+
+    }
+
+
+
+
+    @Configuration
+    @Order(1)
+    public static class BasicLoginConfigurationAdapter extends WebSecurityConfigurerAdapter {
+
+        @Autowired
+        private JHipAuthenticationProvider jHipAuthenticationProvider;
+
+        @Autowired
+        private DefaultAuthenticationSuccessHandler successHandler;
+
+        @Autowired
+        private DefaultAuthenticationFailureHandler failureHandler;
+
+        @Autowired
+        private AuthenticationEntryPoint authenticationEntryPoint;
+
+        private int duration =15;
+
+        private String issuer="jHip-auth";
+
+
+        @Autowired
+        private JWTTokenService jwtTokenService;
+
+        @Override
+        protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+            auth.authenticationProvider(jHipAuthenticationProvider);
+        }
+
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+
+
+//            http.addFilterAt(jsonUsernamePasswordAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+//            http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+            http.csrf().disable().authorizeRequests()
+                    .antMatchers("/login").permitAll()
+                    .anyRequest().authenticated()
+                    .and()
+                        .formLogin()
+                        .permitAll()
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/dashboard")
+                    .and()
+                        .httpBasic().authenticationEntryPoint(authenticationEntryPoint)
+                    .and()
+                        .logout().invalidateHttpSession(true).permitAll();
+
+
+//            http.csrf().disable()
+//                    .authorizeRequests()
+//                        .antMatchers("/login").permitAll()
+//                        .anyRequest().authenticated()
+//                    .and()
+//                        .formLogin()
+//                        .permitAll()
+//                    .and()
+//                        .httpBasic()
+//                    .and()
+//                        .logout().invalidateHttpSession(true);
+
+        }
+
+        @Override
+        public void configure(WebSecurity web) throws Exception {
+            web.ignoring().antMatchers("/*.css");
+            web.ignoring().antMatchers("/*.js");
+        }
+
+
+
+
+
+        @Bean
+        public JsonUsernamePasswordAuthenticationFilter jsonUsernamePasswordAuthenticationFilter() throws Exception {
+            JsonUsernamePasswordAuthenticationFilter jsonUsernamePasswordAuthenticationFilter =  new JsonUsernamePasswordAuthenticationFilter();
+            jsonUsernamePasswordAuthenticationFilter.setAuthenticationManager(authenticationManagerBean());
+            jsonUsernamePasswordAuthenticationFilter.setAuthenticationSuccessHandler(jsonAuthenticationSuccessHandler());
+            jsonUsernamePasswordAuthenticationFilter.setAuthenticationFailureHandler(failureHandler);
+            return jsonUsernamePasswordAuthenticationFilter;
+        }
+
+        @Bean
+        public AuthenticationSuccessHandler jsonAuthenticationSuccessHandler() {
+            return new AuthenticationSuccessHandler() {
+
+                private SavedRequestAwareAuthenticationSuccessHandler nonJsonSuccessHandler = new SavedRequestAwareAuthenticationSuccessHandler();
+                private JWTAuthenticationSuccessHandler jsonSuccessHandler = new JWTAuthenticationSuccessHandler(jwtTokenService, issuer, duration);
+
+                @Override
+                public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                                    Authentication authentication) throws IOException, ServletException {
+
+                    successHandler.onAuthenticationSuccess(request, response, authentication);
+
+                    String contentType = request.getContentType();
+                    if(contentType != null && contentType.toLowerCase().startsWith(MediaType.APPLICATION_JSON_VALUE)) {
+                        jsonSuccessHandler.onAuthenticationSuccess(request, response, authentication);
+                    } else {
+                        nonJsonSuccessHandler.onAuthenticationSuccess(request, response, authentication);
+                    }
+                }
+            };
+        }
 
     }
 
